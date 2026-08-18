@@ -1,0 +1,356 @@
+from pathlib import Path
+import zipfile, textwrap
+
+out = Path("/mnt/data/mg-ice-game")
+out.mkdir(exist_ok=True)
+
+html = r'''<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>マグニスと5段アイス🍨</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; width:100%; height:100%; overflow:hidden; }
+  body {
+    font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", sans-serif;
+    background:#f7eadb;
+    color:#402d2a;
+    touch-action:none;
+  }
+  #app { width:100%; height:100%; display:flex; justify-content:center; align-items:center; }
+  .screen {
+    width:min(100vw, 520px);
+    height:min(100vh, 760px);
+    position:relative;
+    background:#fff8ee;
+    overflow:hidden;
+  }
+  .hidden { display:none !important; }
+
+  #title, #ending {
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    text-align:center;
+  }
+  h1 { font-size:34px; margin:0 0 12px; }
+  .sub { font-size:15px; margin:0 0 25px; }
+  .big-ice { font-size:90px; margin:10px; }
+  button {
+    border:0;
+    border-radius:999px;
+    padding:14px 28px;
+    font-size:18px;
+    font-weight:700;
+    background:#7a3f35;
+    color:white;
+    cursor:pointer;
+  }
+  button:active { transform:scale(.96); }
+
+  #game { height:100%; position:relative; }
+  #hud {
+    position:absolute; top:10px; left:10px; right:10px;
+    display:flex; justify-content:space-between; z-index:10;
+    font-weight:800; font-size:15px;
+  }
+  #message {
+    position:absolute; left:50%; top:52px; transform:translateX(-50%);
+    z-index:12; background:rgba(255,255,255,.9); border-radius:20px;
+    padding:7px 13px; white-space:nowrap; font-size:13px;
+    opacity:0; transition:opacity .15s;
+  }
+  #message.show { opacity:1; }
+
+  #field {
+    position:absolute; inset:0;
+    background:linear-gradient(#dff4f3 0 72%, #ead5bb 72% 100%);
+  }
+  .cloud { position:absolute; font-size:36px; opacity:.7; }
+  #player {
+    position:absolute; bottom:10%; left:50%; transform:translateX(-50%);
+    width:110px; height:120px; display:flex; align-items:center; justify-content:center;
+    font-size:76px; z-index:8; user-select:none;
+  }
+  #player img { max-width:100%; max-height:100%; object-fit:contain; }
+  .falling {
+    position:absolute; width:50px; height:50px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:40px; z-index:6; user-select:none;
+  }
+  #guide {
+    position:absolute; bottom:2%; left:50%; transform:translateX(-50%);
+    font-size:12px; opacity:.65; z-index:9;
+  }
+  #choice {
+    position:absolute; inset:0; background:rgba(45,31,28,.5);
+    z-index:30; display:flex; align-items:center; justify-content:center; padding:25px;
+  }
+  .choice-box {
+    background:#fff8ee; border-radius:24px; padding:25px; width:100%;
+    box-shadow:0 10px 30px rgba(0,0,0,.2); text-align:center;
+  }
+  .choice-box h2 { margin:0 0 8px; font-size:23px; }
+  .choice-box p { margin:0 0 18px; }
+  .choice-buttons { display:flex; gap:10px; justify-content:center; }
+  .choice-buttons button { flex:1; }
+  .choice-buttons button.no { background:#aaa; }
+
+  #ending .emoji { font-size:72px; }
+  #ending h2 { font-size:30px; margin:8px 0; }
+  #ending p { line-height:1.8; white-space:pre-line; }
+  .small { font-size:12px; opacity:.65; margin-top:18px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="screen">
+    <section id="title">
+      <div class="big-ice">🍨</div>
+      <h1>マグニスと<br>5段アイス</h1>
+      <p class="sub">アイスを落とさず食べきろう！</p>
+      <button id="startBtn">START</button>
+      <div class="small">スマホ：指でマグニスを左右に動かしてね</div>
+    </section>
+
+    <section id="game" class="hidden">
+      <div id="field">
+        <div class="cloud" style="left:8%;top:15%">☁️</div>
+        <div class="cloud" style="right:10%;top:25%">☁️</div>
+      </div>
+      <div id="hud">
+        <span>🍨 <span id="score">0</span> / 15</span>
+        <span>落とした：<span id="miss">0</span> / 5</span>
+      </div>
+      <div id="message"></div>
+      <div id="player">🧑‍🦰</div>
+      <div id="guide">← 左右にドラッグ →</div>
+    </section>
+
+    <section id="choice" class="hidden">
+      <div class="choice-box">
+        <h2>🍨 ちょっと休憩</h2>
+        <p>マグニスはアイスを<br>フォシテスにも分けますか？</p>
+        <div class="choice-buttons">
+          <button id="shareBtn">分ける！</button>
+          <button id="aloneBtn" class="no">全部食べる</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="ending" class="hidden">
+      <div class="emoji" id="endEmoji">🍨</div>
+      <h2 id="endTitle"></h2>
+      <p id="endText"></p>
+      <button id="retryBtn">もう一度遊ぶ</button>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const title = document.getElementById("title");
+  const game = document.getElementById("game");
+  const ending = document.getElementById("ending");
+  const choice = document.getElementById("choice");
+  const field = document.getElementById("field");
+  const player = document.getElementById("player");
+  const scoreEl = document.getElementById("score");
+  const missEl = document.getElementById("miss");
+  const message = document.getElementById("message");
+
+  let score = 0, miss = 0, running = false, askedShare = false;
+  let playerX = 50, items = [], lastTime = 0, spawnTimer = 0, touchId = null;
+
+  const TARGET = 15;
+  const MAX_MISS = 5;
+
+  function show(el) { el.classList.remove("hidden"); }
+  function hide(el) { el.classList.add("hidden"); }
+
+  function reset() {
+    items.forEach(i => i.el.remove());
+    items = [];
+    score = 0; miss = 0; playerX = 50; askedShare = false;
+    scoreEl.textContent = score;
+    missEl.textContent = miss;
+    player.style.left = playerX + "%";
+  }
+
+  function start() {
+    reset();
+    hide(title); hide(ending); hide(choice); show(game);
+    running = true;
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+    spawnTimer = 500;
+  }
+
+  function spawnIce() {
+    const el = document.createElement("div");
+    el.className = "falling";
+    el.textContent = "🍨";
+    const x = 8 + Math.random() * 84;
+    el.style.left = `calc(${x}% - 25px)`;
+    el.style.top = "-55px";
+    field.appendChild(el);
+    items.push({el, x, y:-55, speed:130 + Math.random()*60});
+  }
+
+  function flash(text) {
+    message.textContent = text;
+    message.classList.add("show");
+    setTimeout(() => message.classList.remove("show"), 500);
+  }
+
+  function hit(a, b) {
+    const ar = a.getBoundingClientRect(), br = b.getBoundingClientRect();
+    return ar.left < br.right && ar.right > br.left && ar.top < br.bottom && ar.bottom > br.top;
+  }
+
+  function missItem(item) {
+    item.el.remove();
+    items = items.filter(x => x !== item);
+    miss++;
+    missEl.textContent = miss;
+    flash("🍨 あっ！落ちた！");
+    if (miss >= MAX_MISS) end("bad");
+  }
+
+  function collect(item) {
+    item.el.remove();
+    items = items.filter(x => x !== item);
+    score++;
+    scoreEl.textContent = score;
+    flash("キャッチ！🍨");
+    if (score === 7 && !askedShare) {
+      askedShare = true;
+      running = false;
+      show(choice);
+    } else if (score >= TARGET) {
+      running = false;
+      end("true");
+    }
+  }
+
+  function loop(now) {
+    if (!running) return;
+    const dt = Math.min((now - lastTime)/1000, .05);
+    lastTime = now;
+    spawnTimer -= dt*1000;
+    if (spawnTimer <= 0) {
+      spawnIce();
+      spawnTimer = Math.max(360, 650 - score*15);
+    }
+
+    const fieldRect = field.getBoundingClientRect();
+    items.slice().forEach(item => {
+      item.y += item.speed * dt;
+      item.el.style.top = item.y + "px";
+      if (hit(item.el, player)) collect(item);
+      else if (item.y > fieldRect.height) missItem(item);
+    });
+
+    requestAnimationFrame(loop);
+  }
+
+  function end(type) {
+    running = false;
+    hide(game); hide(choice); show(ending);
+    const emoji = document.getElementById("endEmoji");
+    const titleEl = document.getElementById("endTitle");
+    const textEl = document.getElementById("endText");
+
+    if (type === "bad") {
+      emoji.textContent = "😭🍨";
+      titleEl.textContent = "BAD END";
+      textEl.textContent = "アイスを落としてしまった！\n\nフォシテス「……何をしているんですか。」\n\nマグニス「……。」";
+    } else if (type === "true") {
+      emoji.textContent = "😵🍨";
+      titleEl.textContent = "TRUE END";
+      textEl.textContent = "5段アイス、完食！\n\nマグニス「……腹が痛ぇ。」\n\nフォシテス「だから一人で食べるなと言ったでしょう。」";
+    } else {
+      emoji.textContent = "🥰🍨";
+      titleEl.textContent = "HAPPY END";
+      textEl.textContent = "2人で仲良くアイスをシェア！\n\nフォシテス「美味しいですね。」\n\nマグニス「……ああ。」";
+    }
+  }
+
+  function move(clientX) {
+    const r = field.getBoundingClientRect();
+    playerX = Math.max(8, Math.min(92, (clientX-r.left)/r.width*100));
+    player.style.left = playerX + "%";
+  }
+
+  field.addEventListener("pointerdown", e => {
+    touchId = e.pointerId;
+    field.setPointerCapture(e.pointerId);
+    move(e.clientX);
+  });
+  field.addEventListener("pointermove", e => {
+    if (touchId === e.pointerId) move(e.clientX);
+  });
+  field.addEventListener("pointerup", e => { if (touchId === e.pointerId) touchId = null; });
+
+  document.addEventListener("keydown", e => {
+    if (!running) return;
+    if (e.key === "ArrowLeft") playerX -= 5;
+    if (e.key === "ArrowRight") playerX += 5;
+    playerX = Math.max(8, Math.min(92, playerX));
+    player.style.left = playerX + "%";
+  });
+
+  document.getElementById("startBtn").onclick = start;
+  document.getElementById("retryBtn").onclick = start;
+
+  document.getElementById("shareBtn").onclick = () => {
+    hide(choice);
+    // シェアした場合は、そのままHAPPY ENDへ。
+    end("happy");
+  };
+  document.getElementById("aloneBtn").onclick = () => {
+    hide(choice);
+    running = true;
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+  };
+})();
+</script>
+</body>
+</html>
+'''
+
+(out / "index.html").write_text(html, encoding="utf-8")
+
+readme = """# マグニスと5段アイス 🍨
+
+スマホ対応のミニゲーム試作品です。
+
+## 遊び方
+- STARTを押す
+- 指でマグニスを左右に動かして、落ちてくるアイスをキャッチ
+- 7個キャッチすると「フォシテスにも分ける？」の選択肢
+- 分ける → HAPPY END
+- 全部食べる → TRUE END
+- 5個落とす → BAD END
+
+## 絵を差し替える
+現在は絵文字を仮素材にしています。
+後で `player` の部分を画像に変更し、背景やアイスも画像素材に差し替えられます。
+
+## 公開
+`index.html` をそのままGitHub Pages / Netlify / Cloudflare Pagesなどの静的サイト公開サービスにアップロードできます。
+"""
+(out / "README.txt").write_text(readme, encoding="utf-8")
+
+zip_path = Path("/mnt/data/magforcice_game.zip")
+with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+    for p in out.iterdir():
+        z.write(p, arcname=p.name)
+
+print(f"試作品を作りました：{zip_path}")
