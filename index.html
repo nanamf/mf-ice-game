@@ -356,7 +356,7 @@ button:active {
   <!-- 仮のタイトル用アイス -->
   <img
     class="ice-title"
-    src="ice_01.png"
+    src="ice_01.PNG"
     alt="アイス"
   >
 
@@ -436,7 +436,7 @@ button:active {
   <div class="choice-box">
 
     <h2>
-      フォシテスがやってきた
+      苦笑いするフォシテス
     </h2>
 
     <p>
@@ -516,7 +516,7 @@ button:active {
     今回はかなりゆったり。
   */
 
-  const BASE_SPAWN_INTERVAL = 1300;
+  const BASE_SPAWN_INTERVAL = 800;
 
 
   /*
@@ -751,7 +751,7 @@ button:active {
 
       speed:
         105 +
-        Math.random() * 35
+        Math.random() * 45
 
     });
 
@@ -953,12 +953,12 @@ button:active {
 
 
       /*
-        だいたい1.3〜1.7秒に1個
+        だいたい1.3〜1.7秒に1個が400
       */
 
       spawnTimer =
         BASE_SPAWN_INTERVAL +
-        Math.random() * 400;
+        Math.random() * 300;
 
     }
 
