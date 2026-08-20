@@ -513,10 +513,10 @@ button:active {
     ↓
     ゆっくりになる。
 
-    今回はかなりゆったり。
+    今回はかなりゆったり。1300
   */
 
-  const BASE_SPAWN_INTERVAL = 800;
+  const BASE_SPAWN_INTERVAL = 500;
 
 
   /*
@@ -831,7 +831,7 @@ button:active {
       score;
 
 
-    flash("キャッチ！🍨");
+    flash("キャッチ！");
 
 
     /*
@@ -872,7 +872,7 @@ button:active {
 
 
     flash(
-      "🍨 あっ！落ちた！"
+      "クソッ！落ちた！"
     );
 
 
@@ -958,7 +958,7 @@ button:active {
 
       spawnTimer =
         BASE_SPAWN_INTERVAL +
-        Math.random() * 300;
+        Math.random() * 200;
 
     }
 
