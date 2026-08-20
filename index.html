@@ -507,7 +507,7 @@ button:active {
   const MAX_MISS = 5;
 
   /*
-    アイスが落ちてくる間隔。
+    アイスが落ちてくる間隔
 
     数字を大きくすると
     ↓
@@ -516,7 +516,7 @@ button:active {
     今回はかなりゆったり。1300
   */
 
-  const BASE_SPAWN_INTERVAL = 500;
+  const BASE_SPAWN_INTERVAL = 1300;
 
 
   /*
@@ -750,7 +750,7 @@ button:active {
       */
 
       speed:
-        105 +
+        150 +
         Math.random() * 45
 
     });
@@ -958,7 +958,7 @@ button:active {
 
       spawnTimer =
         BASE_SPAWN_INTERVAL +
-        Math.random() * 200;
+        Math.random() * 400;
 
     }
 
