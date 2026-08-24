@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<title>マグニスと5段アイス</title>
+<title>マグニス食べるゲーム</title>
 
 <style>
 * {
@@ -118,7 +118,7 @@ button:active {
 
 #hud {
   position: absolute;
-  top: 112px;
+  top: 100px;
   left: 12px;
   right: 12px;
 
@@ -135,7 +135,7 @@ button:active {
   position: absolute;
 
   left: 50%;
-  top: 55px;
+  top: 100px;
 
   transform: translateX(-50%);
 
@@ -224,7 +224,7 @@ button:active {
 #guide {
   position: absolute;
 
-  bottom: 8%;
+  bottom: 10%;
   left: 50%;
 
   transform: translateX(-50%);
@@ -353,16 +353,16 @@ button:active {
 
 <section id="title">
 
-  <!-- 仮のタイトル用アイス -->
+  <!-- メインイラスト -->
   <img
     class="ice-title"
-    src="ice_01.PNG"
-    alt="アイス"
+    src="mfice.JPG"
+    alt="メインイラスト"
   >
 
   <h1>
-    マグニスと<br>
-    5段アイス
+    マグニスさまが<br>
+    アイス食べるゲーム
   </h1>
 
   <p class="sub">
@@ -509,11 +509,6 @@ button:active {
   /*
     アイスが落ちてくる間隔
 
-    数字を大きくすると
-    ↓
-    ゆっくりになる。
-
-    今回はかなりゆったり。1300
   */
   const BASE_SPAWN_INTERVAL = 500;
 
@@ -521,8 +516,6 @@ button:active {
   /*
     アイス画像5種類
 
-    GitHub上のファイル名を
-    これに合わせてください。
   */
 
   const ICE_IMAGES = [
@@ -1052,7 +1045,7 @@ button:active {
       */
 
       endCharacter.src =
-        "forcystus.png";
+        "bad.JPG";
 
     }
 
@@ -1072,7 +1065,7 @@ button:active {
 
 
       endCharacter.src =
-        "magnus.png";
+        "true.JPG";
 
     }
 
